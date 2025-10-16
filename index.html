@@ -3,48 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BRAAR RÁDIO — O Som dos Clássicos</title>
-  <link rel="icon" href="BRAAR_ICON.png">
+  <title>Rádio BRAAR</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <header>
-    <img src="BRAAR_ICON.png" alt="Logo BRAAR">
-    <div>
-      <h1>BRAAR RÁDIO</h1>
-      <div class="onair">🔴 NO AR</div>
-    </div>
-    <div class="live-banner" id="liveBanner">🔵 AO VIVO com Sarah</div>
-  </header>
+  <h1>🎧 Rádio BRAAR</h1>
+  <button id="btnPlay">Tocar Rádio</button>
+  <p id="status">Carregando...</p>
 
-  <div class="listeners" id="listenersCount">👥 0 ouvintes online</div>
+  <audio id="player" preload="auto"></audio>
 
-  <div class="now-playing">
-    <h2>Agora Tocando</h2>
-    <div class="track-name" id="trackName">Carregando música...</div>
-    <div class="equalizer">
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-    </div>
-  </div>
-
-  <section class="info">
-    <h3>🎶 Projeto Cultural BRAAR RÁDIO</h3>
-    <p>
-      A <strong>BRAAR Rádio</strong> é um projeto cultural dedicado a preservar e celebrar
-      os maiores sucessos da música <strong>brasileira e internacional</strong>.
-      Todas as faixas são reproduzidas com respeito aos direitos autorais,
-      <strong>sem fins lucrativos</strong>.
-      Um tributo ao som que marcou gerações — conectando passado e futuro através da música. 🇧🇷🌍
-    </p>
-  </section>
-
-  <audio id="audioPlayer"></audio>
-  <audio id="voicePlayer"></audio>
-  <audio id="vinhetaPlayer"></audio>
-
-  <footer>BRAAR © 2025 — Projeto cultural brasileiro</footer>
-
-  <script src="script.js"></script>
+  <script src="player.js"></script>
 </body>
 </html>
