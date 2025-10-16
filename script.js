@@ -1,10 +1,12 @@
+/* BRAAR Rádio — Modal de permissão única + player persistente */
+
 async function fetchTracks() {
-  const response = await fetch('https://api.github.com/repos/BRAAR-ORG/braarradio/releases/tags/musica');
-  const data = await response.json();
-  if (!data.assets) return { songs: [], locs: [], vinhetas: [] };
+  const r = await fetch('https://api.github.com/repos/BRAAR-ORG/braarradio/releases/tags/musica');
+  const d = await r.json();
+  if (!d.assets) return { songs: [], locs: [], vinhetas: [] };
 
   const songs = [], locs = [], vinhetas = [];
-  for (const a of data.assets) {
+  for (const a of d.assets) {
     if (a.name.endsWith('.mp3')) {
       if (a.name.startsWith('LOC_Sarah')) locs.push(a.browser_download_url);
       else if (a.name.startsWith('VIN_BRAAR')) vinhetas.push(a.browser_download_url);
@@ -14,118 +16,150 @@ async function fetchTracks() {
   return { songs, locs, vinhetas };
 }
 
-function formatTrackName(file) {
-  return file.replace('.mp3','').replace(/[-_.]+/g,' ')
-             .replace(/\b\w/g,c=>c.toUpperCase());
+function formatTrackName(f) {
+  return f.replace('.mp3', '').replace(/[-_.]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function fadeAudio(audio, targetVolume, duration=2000) {
-  const step = (targetVolume - audio.volume) / (duration / 100);
-  const interval = setInterval(() => {
-    audio.volume = Math.min(Math.max(audio.volume + step, 0), 1);
-    if ((step > 0 && audio.volume >= targetVolume) || (step < 0 && audio.volume <= targetVolume))
-      clearInterval(interval);
+function fadeAudio(a, v, d = 2000) {
+  const s = (v - a.volume) / (d / 100);
+  const i = setInterval(() => {
+    a.volume = Math.min(Math.max(a.volume + s, 0), 1);
+    if ((s > 0 && a.volume >= v) || (s < 0 && a.volume <= v)) clearInterval(i);
   }, 100);
 }
 
-/* ==========================
-   PLAYER PRINCIPAL COM PERSISTÊNCIA
-   ========================== */
 async function initPlayer() {
-  const player = document.getElementById('audioPlayer');
-  const voice = document.getElementById('voicePlayer');
-  const vinheta = document.getElementById('vinhetaPlayer');
-  const trackName = document.getElementById('trackName');
-  const banner = document.getElementById('liveBanner');
+  const p = document.getElementById('audioPlayer'),
+        v = document.getElementById('voicePlayer'),
+        vin = document.getElementById('vinhetaPlayer'),
+        n = document.getElementById('trackName'),
+        b = document.getElementById('liveBanner'),
+        prompt = document.getElementById('playPrompt'),
+        start = document.getElementById('startBtn'),
+        mute = document.getElementById('muteBtn'),
+        toggle = document.getElementById('soundToggle');
 
   const { songs, locs, vinhetas } = await fetchTracks();
   if (!songs.length) {
-    trackName.textContent = 'Nenhuma música encontrada.';
+    n.textContent = 'Nenhuma música encontrada.';
     return;
   }
 
-  const shuffle = arr => arr.sort(() => Math.random() - 0.5);
-  shuffle(songs); shuffle(locs); shuffle(vinhetas);
+  const shuf = a => a.sort(() => Math.random() - 0.5);
+  shuf(songs); shuf(locs); shuf(vinhetas);
 
-  let index = 0, count = 0, nextLoc = Math.floor(Math.random() * 9) + 2;
+  let idx = 0, c = 0, next = Math.floor(Math.random() * 9) + 2;
+  const saved = JSON.parse(localStorage.getItem('braar_state') || '{}');
+  if (saved.song && songs.includes(saved.song)) idx = songs.indexOf(saved.song);
 
-  // --- Recuperar estado salvo ---
-  const saved = JSON.parse(localStorage.getItem('braar_player_state')) || {};
-  if (saved.song && songs.includes(saved.song)) {
-    index = songs.indexOf(saved.song);
+  function persist(song, pos) {
+    localStorage.setItem('braar_state', JSON.stringify({ song, pos }));
   }
 
-  async function playNext(resume=false) {
+  function playNext(resume = false) {
     let isLoc = false;
-    if (locs.length && count >= nextLoc) {
-      isLoc = true; count = 0; nextLoc = Math.floor(Math.random() * 9) + 2;
+    if (locs.length && c >= next) {
+      isLoc = true;
+      c = 0;
+      next = Math.floor(Math.random() * 9) + 2;
     }
 
     if (isLoc) {
-      fadeAudio(player, 0.2, 2000);
-      const locUrl = locs[Math.floor(Math.random()*locs.length)];
-      trackName.textContent = 'AO VIVO com Sarah';
-      banner.classList.add('show');
-      voice.src = locUrl;
-      voice.volume = 1;
-      voice.play();
-      voice.onended = () => { banner.classList.remove('show'); playVinheta(); };
+      fadeAudio(p, 0.2, 1500);
+      const loc = locs[Math.floor(Math.random() * locs.length)];
+      n.textContent = 'AO VIVO com Sarah';
+      b.classList.add('show');
+      v.src = loc;
+      v.volume = 1;
+      v.play().catch(() => {});
+      v.onended = () => {
+        b.classList.remove('show');
+        playVinheta();
+      };
     } else {
-      const songUrl = songs[index];
-      index = (index + 1) % songs.length;
-      count++;
-
-      trackName.textContent = formatTrackName(songUrl.split('/').pop());
-      player.src = songUrl;
-      player.volume = 1;
-
-      if (resume && saved.position) {
-        player.currentTime = saved.position;
+      const s = songs[idx];
+      idx = (idx + 1) % songs.length;
+      c++;
+      n.textContent = formatTrackName(s.split('/').pop());
+      p.src = s;
+      if (resume && saved.song === s && saved.pos) {
+        try { p.currentTime = saved.pos; } catch {}
       }
-
-      player.play().catch(() => 
-        document.body.addEventListener('click', () => player.play(), { once:true })
-      );
-
-      player.onended = playNext;
-
-      // --- Salvar progresso a cada 5s ---
-      setInterval(() => {
-        localStorage.setItem('braar_player_state', JSON.stringify({
-          song: songUrl,
-          position: player.currentTime
-        }));
-      }, 5000);
+      p.play().catch(() => showPrompt());
+      p.onended = playNext;
+      clearInterval(p._sv);
+      p._sv = setInterval(() => persist(s, p.currentTime), 4000);
     }
   }
 
   function playVinheta() {
     if (!vinhetas.length) return playNext();
-    const vinUrl = vinhetas[Math.floor(Math.random()*vinhetas.length)];
-    vinheta.src = vinUrl;
-    vinheta.volume = 1;
-    vinheta.play();
-    vinheta.onended = () => { fadeAudio(player, 1, 2000); playNext(); };
+    const vinUrl = vinhetas[Math.floor(Math.random() * vinhetas.length)];
+    vin.src = vinUrl;
+    vin.volume = 1;
+    vin.play().catch(() => {});
+    vin.onended = () => {
+      fadeAudio(p, 1, 1500);
+      playNext();
+    };
   }
 
-  playNext(true);
+  function startPlayback(muted = false, resume = true) {
+    p.muted = v.muted = vin.muted = muted;
+    playNext(resume);
+    toggle.classList.remove('hidden');
+    toggle.textContent = muted ? '🔇' : '🔊';
+  }
+
+  // Toggle som
+  toggle.onclick = () => {
+    const muted = !p.muted;
+    p.muted = v.muted = vin.muted = muted;
+    toggle.textContent = muted ? '🔇' : '🔊';
+  };
+
+  const interacted = localStorage.getItem('braar_interacted') === '1';
+
+  if (interacted) {
+    // ✅ Usuário já aceitou ou recusou → nunca mais mostra o modal
+    prompt.remove();
+    startPlayback(false, true);
+  } else {
+    // 🔔 Primeira visita → mostrar o aviso
+    showPrompt();
+    start.onclick = () => {
+      localStorage.setItem('braar_interacted', '1');
+      hidePrompt();
+      startPlayback(false, true);
+    };
+    mute.onclick = () => {
+      localStorage.setItem('braar_interacted', '1');
+      hidePrompt();
+      startPlayback(true, true);
+    };
+  }
+
+  function showPrompt() {
+    prompt.classList.remove('hidden');
+    prompt.style.display = 'flex';
+  }
+  function hidePrompt() {
+    prompt.classList.add('hidden');
+    setTimeout(() => prompt.remove(), 500); // 🔥 remove do DOM depois
+  }
 }
 
-/* ==========================
-   SISTEMA DE OUVINTES MELHORADO
-   ========================== */
 function simulateListeners() {
-  const el = document.getElementById('listenersCount');
-  let listeners = Number(localStorage.getItem('braar_listeners')) || Math.floor(Math.random()*40)+20;
-  el.textContent = `👥 ${listeners} ouvintes online`;
-
+  const e = document.getElementById('listenersCount');
+  let l = Number(localStorage.getItem('braar_listeners')) || Math.floor(Math.random() * 40) + 20;
+  e.textContent = `👥 ${l} ouvintes online`;
   setInterval(() => {
-    const change = Math.floor(Math.random()*5) - 2;
-    listeners = Math.max(1, listeners + change);
-    el.textContent = `👥 ${listeners} ouvintes online`;
-    el.classList.add('updated');
-    setTimeout(()=>el.classList.remove('updated'),500);
-    localStorage.setItem('braar_listeners', listeners);
+    const c = Math.floor(Math.random() * 5) - 2;
+    l = Math.max(1, l + c);
+    e.textContent = `👥 ${l} ouvintes online`;
+    e.classList.add('updated');
+    setTimeout(() => e.classList.remove('updated'), 500);
+    localStorage.setItem('braar_listeners', l);
   }, 8000);
 }
 
