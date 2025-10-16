@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rádio BRAAR</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BRAAR Rádio</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="container">
+    <h1>🎶 Rádio BRAAR</h1>
+    <audio id="player" controls></audio>
 
-  <h1>🎧 Rádio BRAAR</h1>
-  <button id="btnPlay">Tocar Rádio</button>
-  <p id="status">Carregando...</p>
+    <div class="controles">
+      <button id="playPause">▶️ / ⏸️</button>
+      <button id="trocarMusica">🔁 Trocar Música</button>
+    </div>
+  </div>
 
-  <audio id="player" preload="auto"></audio>
-
-  <script src="player.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
