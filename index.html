@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BRAAR RÁDIO — O Som dos Clássicos</title>
+  <link rel="icon" href="BRAAR_ICON.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <img src="BRAAR_ICON.png" alt="Logo BRAAR">
+    <div>
+      <h1>BRAAR RÁDIO</h1>
+      <div class="onair">🔴 NO AR</div>
+    </div>
+    <div class="live-banner" id="liveBanner">🔵 AO VIVO com Sarah</div>
+  </header>
+
+  <div class="listeners" id="listenersCount">👥 0 ouvintes online</div>
+
+  <div class="now-playing">
+    <h2>Agora Tocando</h2>
+    <div class="track-name" id="trackName">Carregando música...</div>
+    <div class="equalizer">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+  </div>
+
+  <section class="info">
+    <h3>🎶 Projeto Cultural BRAAR RÁDIO</h3>
+    <p>
+      A <strong>BRAAR Rádio</strong> é um projeto cultural dedicado a preservar e celebrar
+      os maiores sucessos da música <strong>brasileira e internacional</strong>.
+      Todas as faixas são reproduzidas com respeito aos direitos autorais,
+      <strong>sem fins lucrativos</strong>.
+      Um tributo ao som que marcou gerações — conectando passado e futuro através da música. 🇧🇷🌍
+    </p>
+  </section>
+
+  <audio id="audioPlayer"></audio>
+  <audio id="voicePlayer"></audio>
+  <audio id="vinhetaPlayer"></audio>
+
+  <footer>BRAAR © 2025 — Projeto cultural brasileiro</footer>
+
+<!-- 🔊 Modal de permissão de áudio -->
+<div id="playPrompt" class="play-prompt" role="dialog" aria-modal="true" aria-labelledby="playPromptTitle">
+  <div class="play-prompt-card">
+    <div class="icon-wrapper">
+      <div class="soundwave"></div>
+      <div class="soundwave delay"></div>
+      <div class="soundwave delay2"></div>
+    </div>
+    <h2 id="playPromptTitle">Ative o Som</h2>
+    <p>Toque no botão abaixo para ouvir a <strong>BRAAR Rádio</strong> ao vivo.<br> É rápido e seguro 🔥</p>
+    <button id="startBtn" class="btn-primary">🔊 Permitir e Ouvir</button>
+    <button id="muteBtn" class="btn-secondary">🔇 Entrar sem som</button>
+  </div>
+</div>
+
+<!-- 🔘 Botão flutuante para ligar/desligar som -->
+<button id="soundToggle" class="sound-toggle hidden" title="Ativar/Desativar som">
+  🔇
+</button>
+
+  <script src="script.js"></script>
+</body>
+</html>
