@@ -45,6 +45,26 @@
 
   <footer>BRAAR © 2025 — Projeto cultural brasileiro</footer>
 
+<!-- 🔊 Modal de permissão de áudio -->
+<div id="playPrompt" class="play-prompt" role="dialog" aria-modal="true" aria-labelledby="playPromptTitle">
+  <div class="play-prompt-card">
+    <div class="icon-wrapper">
+      <div class="soundwave"></div>
+      <div class="soundwave delay"></div>
+      <div class="soundwave delay2"></div>
+    </div>
+    <h2 id="playPromptTitle">Ative o Som</h2>
+    <p>Toque no botão abaixo para ouvir a <strong>BRAAR Rádio</strong> ao vivo.<br> É rápido e seguro 🔥</p>
+    <button id="startBtn" class="btn-primary">🔊 Permitir e Ouvir</button>
+    <button id="muteBtn" class="btn-secondary">🔇 Entrar sem som</button>
+  </div>
+</div>
+
+<!-- 🔘 Botão flutuante para ligar/desligar som -->
+<button id="soundToggle" class="sound-toggle hidden" title="Ativar/Desativar som">
+  🔇
+</button>
+
   <script src="script.js"></script>
 </body>
 </html>
