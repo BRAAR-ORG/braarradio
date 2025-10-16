@@ -1,77 +1,133 @@
-// === CONFIGURAÇÃO DE MÚSICAS ===
-const musicas = [
-  "musicas/musica1.mp3",
-  "musicas/musica2.mp3",
-  "musicas/musica3.mp3",
-];
+async function fetchTracks() {
+  const response = await fetch('https://api.github.com/repos/BRAAR-ORG/braarradio/releases/tags/musica');
+  const data = await response.json();
+  if (!data.assets) return { songs: [], locs: [], vinhetas: [] };
 
-const player = document.getElementById("player");
-const playPauseBtn = document.getElementById("playPause");
-const trocarBtn = document.getElementById("trocarMusica");
-
-// === FUNÇÃO DE PERMISSÃO DE ÁUDIO ===
-function pedirPermissaoAudio() {
-  const permitido = localStorage.getItem("audio_permitido");
-  if (permitido === "true") return;
-
-  const botao = document.createElement("button");
-  botao.id = "botaoPermissao";
-  botao.innerText = "Clique para permitir áudio 🔊";
-  document.body.appendChild(botao);
-
-  botao.onclick = async () => {
-    try {
-      const testAudio = new Audio();
-      testAudio.src = musicas[0];
-      testAudio.volume = 0.05;
-      await testAudio.play();
-      testAudio.pause();
-      localStorage.setItem("audio_permitido", "true");
-      botao.remove();
-    } catch {
-      alert("Por favor, permita o áudio nas configurações do navegador.");
+  const songs = [], locs = [], vinhetas = [];
+  for (const a of data.assets) {
+    if (a.name.endsWith('.mp3')) {
+      if (a.name.startsWith('LOC_Sarah')) locs.push(a.browser_download_url);
+      else if (a.name.startsWith('VIN_BRAAR')) vinhetas.push(a.browser_download_url);
+      else songs.push(a.browser_download_url);
     }
-  };
+  }
+  return { songs, locs, vinhetas };
 }
 
-// === CARREGAR ESTADO ANTERIOR ===
-window.addEventListener("DOMContentLoaded", () => {
-  pedirPermissaoAudio();
+function formatTrackName(file) {
+  return file.replace('.mp3','').replace(/[-_.]+/g,' ')
+             .replace(/\b\w/g,c=>c.toUpperCase());
+}
 
-  const musicaSalva = localStorage.getItem("musica_atual");
-  const tempoSalvo = parseFloat(localStorage.getItem("tempo_atual"));
-  const estavaTocando = localStorage.getItem("esta_tocando") === "true";
+function fadeAudio(audio, targetVolume, duration=2000) {
+  const step = (targetVolume - audio.volume) / (duration / 100);
+  const interval = setInterval(() => {
+    audio.volume = Math.min(Math.max(audio.volume + step, 0), 1);
+    if ((step > 0 && audio.volume >= targetVolume) || (step < 0 && audio.volume <= targetVolume))
+      clearInterval(interval);
+  }, 100);
+}
 
-  if (musicaSalva) {
-    player.src = musicaSalva;
-    player.addEventListener("loadedmetadata", () => {
-      if (!isNaN(tempoSalvo)) player.currentTime = tempoSalvo;
-      if (estavaTocando) player.play().catch(() => {});
-    });
-  } else {
-    player.src = musicas[0];
+/* ==========================
+   PLAYER PRINCIPAL COM PERSISTÊNCIA
+   ========================== */
+async function initPlayer() {
+  const player = document.getElementById('audioPlayer');
+  const voice = document.getElementById('voicePlayer');
+  const vinheta = document.getElementById('vinhetaPlayer');
+  const trackName = document.getElementById('trackName');
+  const banner = document.getElementById('liveBanner');
+
+  const { songs, locs, vinhetas } = await fetchTracks();
+  if (!songs.length) {
+    trackName.textContent = 'Nenhuma música encontrada.';
+    return;
   }
-});
 
-// === SALVAR ESTADO QUANDO SAIR ===
-window.addEventListener("beforeunload", () => {
-  localStorage.setItem("musica_atual", player.src);
-  localStorage.setItem("tempo_atual", player.currentTime);
-  localStorage.setItem("esta_tocando", !player.paused);
-});
+  const shuffle = arr => arr.sort(() => Math.random() - 0.5);
+  shuffle(songs); shuffle(locs); shuffle(vinhetas);
 
-// === CONTROLES ===
-playPauseBtn.onclick = () => {
-  if (player.paused) {
-    player.play();
-  } else {
-    player.pause();
+  let index = 0, count = 0, nextLoc = Math.floor(Math.random() * 9) + 2;
+
+  // --- Recuperar estado salvo ---
+  const saved = JSON.parse(localStorage.getItem('braar_player_state')) || {};
+  if (saved.song && songs.includes(saved.song)) {
+    index = songs.indexOf(saved.song);
   }
-};
 
-trocarBtn.onclick = () => {
-  let atual = musicas.indexOf(player.src.split("/").pop());
-  let proxima = (atual + 1) % musicas.length;
-  player.src = musicas[proxima];
-  player.play();
-};
+  async function playNext(resume=false) {
+    let isLoc = false;
+    if (locs.length && count >= nextLoc) {
+      isLoc = true; count = 0; nextLoc = Math.floor(Math.random() * 9) + 2;
+    }
+
+    if (isLoc) {
+      fadeAudio(player, 0.2, 2000);
+      const locUrl = locs[Math.floor(Math.random()*locs.length)];
+      trackName.textContent = 'AO VIVO com Sarah';
+      banner.classList.add('show');
+      voice.src = locUrl;
+      voice.volume = 1;
+      voice.play();
+      voice.onended = () => { banner.classList.remove('show'); playVinheta(); };
+    } else {
+      const songUrl = songs[index];
+      index = (index + 1) % songs.length;
+      count++;
+
+      trackName.textContent = formatTrackName(songUrl.split('/').pop());
+      player.src = songUrl;
+      player.volume = 1;
+
+      if (resume && saved.position) {
+        player.currentTime = saved.position;
+      }
+
+      player.play().catch(() => 
+        document.body.addEventListener('click', () => player.play(), { once:true })
+      );
+
+      player.onended = playNext;
+
+      // --- Salvar progresso a cada 5s ---
+      setInterval(() => {
+        localStorage.setItem('braar_player_state', JSON.stringify({
+          song: songUrl,
+          position: player.currentTime
+        }));
+      }, 5000);
+    }
+  }
+
+  function playVinheta() {
+    if (!vinhetas.length) return playNext();
+    const vinUrl = vinhetas[Math.floor(Math.random()*vinhetas.length)];
+    vinheta.src = vinUrl;
+    vinheta.volume = 1;
+    vinheta.play();
+    vinheta.onended = () => { fadeAudio(player, 1, 2000); playNext(); };
+  }
+
+  playNext(true);
+}
+
+/* ==========================
+   SISTEMA DE OUVINTES MELHORADO
+   ========================== */
+function simulateListeners() {
+  const el = document.getElementById('listenersCount');
+  let listeners = Number(localStorage.getItem('braar_listeners')) || Math.floor(Math.random()*40)+20;
+  el.textContent = `👥 ${listeners} ouvintes online`;
+
+  setInterval(() => {
+    const change = Math.floor(Math.random()*5) - 2;
+    listeners = Math.max(1, listeners + change);
+    el.textContent = `👥 ${listeners} ouvintes online`;
+    el.classList.add('updated');
+    setTimeout(()=>el.classList.remove('updated'),500);
+    localStorage.setItem('braar_listeners', listeners);
+  }, 8000);
+}
+
+initPlayer();
+simulateListeners();
