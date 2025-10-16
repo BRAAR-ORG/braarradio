@@ -1,66 +1,77 @@
+// === CONFIGURAÇÃO DE MÚSICAS ===
+const musicas = [
+  "musicas/musica1.mp3",
+  "musicas/musica2.mp3",
+  "musicas/musica3.mp3",
+];
+
 const player = document.getElementById("player");
-const btnPlay = document.getElementById("btnPlay");
-const status = document.getElementById("status");
+const playPauseBtn = document.getElementById("playPause");
+const trocarBtn = document.getElementById("trocarMusica");
 
-// Música padrão da rádio (substitua pelo seu link)
-const musicaPadrao = "https://example.com/musicas/braar_theme.mp3";
+// === FUNÇÃO DE PERMISSÃO DE ÁUDIO ===
+function pedirPermissaoAudio() {
+  const permitido = localStorage.getItem("audio_permitido");
+  if (permitido === "true") return;
 
-// Recuperar dados salvos
-const musicaSalva = localStorage.getItem("musicaAtual") || musicaPadrao;
-const tempoSalvo = parseFloat(localStorage.getItem("tempoMusica")) || 0;
-const tocandoAntes = localStorage.getItem("tocandoAntes") === "true";
+  const botao = document.createElement("button");
+  botao.id = "botaoPermissao";
+  botao.innerText = "Clique para permitir áudio 🔊";
+  document.body.appendChild(botao);
 
-// Define música inicial
-player.src = musicaSalva;
+  botao.onclick = async () => {
+    try {
+      const testAudio = new Audio();
+      testAudio.src = musicas[0];
+      testAudio.volume = 0.05;
+      await testAudio.play();
+      testAudio.pause();
+      localStorage.setItem("audio_permitido", "true");
+      botao.remove();
+    } catch {
+      alert("Por favor, permita o áudio nas configurações do navegador.");
+    }
+  };
+}
 
-// Ao sair, salvar estado
-window.addEventListener("beforeunload", () => {
-  localStorage.setItem("musicaAtual", player.src);
-  localStorage.setItem("tempoMusica", player.currentTime);
-  localStorage.setItem("tocandoAntes", !player.paused);
-});
+// === CARREGAR ESTADO ANTERIOR ===
+window.addEventListener("DOMContentLoaded", () => {
+  pedirPermissaoAudio();
 
-// Botão de ativar som
-btnPlay.addEventListener("click", () => {
-  player.currentTime = tempoSalvo;
-  player.play().then(() => {
-    status.textContent = "🎶 Tocando Rádio BRAAR...";
-    btnPlay.classList.add("hidden");
-    localStorage.setItem("tocandoAntes", true);
-  }).catch(err => {
-    console.error("Erro ao tentar tocar:", err);
-    status.textContent = "⚠️ O navegador bloqueou o som. Clique novamente.";
-  });
-});
+  const musicaSalva = localStorage.getItem("musica_atual");
+  const tempoSalvo = parseFloat(localStorage.getItem("tempo_atual"));
+  const estavaTocando = localStorage.getItem("esta_tocando") === "true";
 
-// Tenta retomar automaticamente se o usuário já tinha autorizado antes
-window.addEventListener("load", () => {
-  player.currentTime = tempoSalvo;
-  if (tocandoAntes) {
-    player.play().then(() => {
-      status.textContent = "🎶 Tocando Rádio BRAAR...";
-      btnPlay.classList.add("hidden");
-    }).catch(() => {
-      status.textContent = "🔈 Clique para ativar o som";
-      btnPlay.classList.remove("hidden");
+  if (musicaSalva) {
+    player.src = musicaSalva;
+    player.addEventListener("loadedmetadata", () => {
+      if (!isNaN(tempoSalvo)) player.currentTime = tempoSalvo;
+      if (estavaTocando) player.play().catch(() => {});
     });
   } else {
-    status.textContent = "🔈 Clique para ouvir a Rádio BRAAR";
-    btnPlay.classList.remove("hidden");
+    player.src = musicas[0];
   }
 });
 
-// Atualiza status
-player.addEventListener("play", () => {
-  status.textContent = "🎶 Tocando Rádio BRAAR...";
+// === SALVAR ESTADO QUANDO SAIR ===
+window.addEventListener("beforeunload", () => {
+  localStorage.setItem("musica_atual", player.src);
+  localStorage.setItem("tempo_atual", player.currentTime);
+  localStorage.setItem("esta_tocando", !player.paused);
 });
 
-player.addEventListener("pause", () => {
-  status.textContent = "⏸ Rádio pausada";
-});
+// === CONTROLES ===
+playPauseBtn.onclick = () => {
+  if (player.paused) {
+    player.play();
+  } else {
+    player.pause();
+  }
+};
 
-player.addEventListener("ended", () => {
-  status.textContent = "🔁 Fim da música — reiniciando...";
-  player.currentTime = 0;
+trocarBtn.onclick = () => {
+  let atual = musicas.indexOf(player.src.split("/").pop());
+  let proxima = (atual + 1) % musicas.length;
+  player.src = musicas[proxima];
   player.play();
-});
+};
