@@ -32,63 +32,36 @@ function fadeAudio(audio, target, duration = 1500) {
   }, 100);
 }
 
-/* ------------------ Modal de permissão ------------------ */
+/* ------------------ Permissão e controle ------------------ */
+function getPermissionState() {
+  return localStorage.getItem('braar_permission');
+}
+
+function setPermissionState(state) {
+  localStorage.setItem('braar_permission', state);
+}
+
 function showAudioPrompt(startCallback, muteCallback) {
-  if (localStorage.getItem('braar_permission') === 'granted') {
-    startCallback();
-    return;
-  }
+  // Se já foi concedido ou negado, não mostra novamente
+  const state = getPermissionState();
+  if (state === 'granted') return startCallback();
+  if (state === 'muted') return muteCallback();
 
-  const modal = document.createElement('div');
-  modal.id = 'audio-permission';
-  modal.innerHTML = `
-    <div class="modal-content">
-      <h2>🎧 BRAAR Rádio</h2>
-      <p>Para começar, permita o áudio. Assim você escuta a transmissão completa com Sarah e as músicas ao vivo.</p>
-      <div class="buttons">
-        <button id="allowAudio">Permitir e Ouvir</button>
-        <button id="muteAudio">Entrar sem Som</button>
-      </div>
-    </div>
-  `;
-  Object.assign(modal.style, {
-    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-    background: 'rgba(0,0,0,0.9)', display: 'flex',
-    alignItems: 'center', justifyContent: 'center', zIndex: 9999
-  });
-  modal.querySelector('.modal-content').style.cssText = `
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.2);
-    padding: 25px 35px;
-    border-radius: 15px;
-    text-align: center;
-    color: #fff;
-    max-width: 400px;
-    box-shadow: 0 0 20px rgba(230,201,77,0.4);
-  `;
-  modal.querySelector('h2').style.cssText = `color:#e6c94d;margin-bottom:10px;`;
-  modal.querySelector('p').style.cssText = `color:#ccc;margin-bottom:20px;line-height:1.5;`;
-  modal.querySelector('.buttons').style.cssText = `display:flex;gap:10px;justify-content:center;`;
-  modal.querySelectorAll('button').forEach(btn => {
-    btn.style.cssText = `
-      background:linear-gradient(90deg,#e6c94d,#fff34d);
-      color:#000;padding:10px 18px;border:none;border-radius:10px;
-      font-weight:bold;cursor:pointer;transition:all 0.2s;
-    `;
-    btn.onmouseenter = () => btn.style.transform = 'scale(1.05)';
-    btn.onmouseleave = () => btn.style.transform = 'scale(1)';
-  });
+  const prompt = document.getElementById('playPrompt');
+  prompt.classList.remove('hidden');
 
-  document.body.appendChild(modal);
+  const startBtn = document.getElementById('startBtn');
+  const muteBtn = document.getElementById('muteBtn');
 
-  document.getElementById('allowAudio').onclick = () => {
-    localStorage.setItem('braar_permission', 'granted');
-    modal.remove();
+  startBtn.onclick = () => {
+    setPermissionState('granted');
+    prompt.classList.add('hidden');
     startCallback();
   };
-  document.getElementById('muteAudio').onclick = () => {
-    localStorage.setItem('braar_permission', 'granted');
-    modal.remove();
+
+  muteBtn.onclick = () => {
+    setPermissionState('muted');
+    prompt.classList.add('hidden');
     muteCallback();
   };
 }
@@ -100,6 +73,7 @@ async function initPlayer() {
   const vinheta = document.getElementById('vinhetaPlayer');
   const trackName = document.getElementById('trackName');
   const banner = document.getElementById('liveBanner');
+  const soundToggle = document.getElementById('soundToggle');
 
   const { songs, locs, vinhetas } = await fetchTracks();
   if (!songs.length) {
@@ -167,15 +141,34 @@ async function initPlayer() {
     };
   }
 
+  /* --- Estado inicial --- */
   function startWithSound() {
     player.muted = voice.muted = vinheta.muted = false;
+    soundToggle.textContent = '🔊';
+    soundToggle.classList.remove('hidden');
     playNext(true);
   }
 
   function startMuted() {
     player.muted = voice.muted = vinheta.muted = true;
+    soundToggle.textContent = '🔇';
+    soundToggle.classList.remove('hidden');
     playNext(true);
   }
+
+  /* --- Controle manual de som --- */
+  soundToggle.addEventListener('click', () => {
+    const isMuted = player.muted && voice.muted && vinheta.muted;
+    if (isMuted) {
+      player.muted = voice.muted = vinheta.muted = false;
+      setPermissionState('granted');
+      soundToggle.textContent = '🔊';
+    } else {
+      player.muted = voice.muted = vinheta.muted = true;
+      setPermissionState('muted');
+      soundToggle.textContent = '🔇';
+    }
+  });
 
   showAudioPrompt(startWithSound, startMuted);
 }
