@@ -65,6 +65,79 @@
   🔇
 </button>
 
+<!-- Ajuste: manter permissão de áudio sem reexibir o painel -->
+<script>
+function getPermissionState() {
+  return localStorage.getItem('braar_permission');
+}
+
+function setPermissionState(state) {
+  localStorage.setItem('braar_permission', state);
+}
+
+function showAudioPrompt(startCallback, muteCallback) {
+  const state = getPermissionState();
+  const prompt = document.getElementById('playPrompt');
+
+  // Se já foi concedido, inicia o som e nunca mais exibe o painel
+  if (state === 'granted') {
+    prompt.remove();
+    startCallback();
+    return;
+  }
+
+  // Se usuário escolheu entrar sem som, também não mostra mais o painel
+  if (state === 'muted') {
+    prompt.remove();
+    muteCallback();
+    return;
+  }
+
+  // Caso ainda não tenha escolhido, mostra o painel
+  prompt.classList.remove('hidden');
+
+  const startBtn = document.getElementById('startBtn');
+  const muteBtn = document.getElementById('muteBtn');
+
+  startBtn.onclick = () => {
+    setPermissionState('granted');
+    prompt.classList.add('hidden');
+    startCallback();
+  };
+
+  muteBtn.onclick = () => {
+    setPermissionState('muted');
+    prompt.classList.add('hidden');
+    muteCallback();
+  };
+}
+
+// Dentro do initPlayer()
+async function initPlayer() {
+  const player = document.getElementById('audioPlayer');
+  const voice = document.getElementById('voicePlayer');
+  const vinheta = document.getElementById('vinhetaPlayer');
+  const soundToggle = document.getElementById('soundToggle');
+
+  function startWithSound() {
+    player.muted = voice.muted = vinheta.muted = false;
+    soundToggle.textContent = '🔊';
+    soundToggle.classList.remove('hidden');
+    player.play().catch(() => {});
+  }
+
+  function startMuted() {
+    player.muted = voice.muted = vinheta.muted = true;
+    soundToggle.textContent = '🔇';
+    soundToggle.classList.remove('hidden');
+  }
+
+  showAudioPrompt(startWithSound, startMuted);
+}
+</script>
+
+  
   <script src="script.js"></script>
 </body>
 </html>
+
