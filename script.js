@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- Fetch tracks from GitHub release assets ---------- */
   async function fetchTracks() {
     try {
-      const r = await fetch('https://api.github.com/repos/BRAAR-ORG/braarradio/releases/tags/musica');
+      const r = await fetch('https://api.github.com/repos/BRAAR-ORG/music/releases/tags/musica');
       const data = await r.json();
       if (!data.assets) return { songs: [], locs: [], vinhetas: [] };
       const songs = [], locs = [], vinhetas = [];
@@ -255,3 +255,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
   })(); // end main()
 }); // end DOMContentLoaded
+
