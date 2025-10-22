@@ -1,10 +1,3 @@
-/* ============================================================
-   BRAAR RÁDIO — script.js
-   - Permissão aparece 1x (localStorage: braar_permission)
-   - Persistência de faixa + posição (localStorage: braar_state)
-   - Compatível com GitHub Pages (100% client-side)
-   ============================================================ */
-
 document.addEventListener('DOMContentLoaded', () => {
   const player = document.getElementById('audioPlayer');
   const voice = document.getElementById('voicePlayer');
@@ -255,11 +248,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
   })(); // end main()
 }); // end DOMContentLoaded
-
-
-
-
-
-
-
-
