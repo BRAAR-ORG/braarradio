@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let listeners = Number(localStorage.getItem(LISTENERS_KEY)) || Math.floor(Math.random() * 40) + 20;
       listenersEl.textContent = `👥 ${listeners} ouvintes online`;
       setInterval(() => {
-        const c = Math.floor(Math.random() * 90) - 20;
+        const c = Math.floor(Math.random() * 14) - 7;
         listeners = Math.max(1, listeners + c);
         listenersEl.textContent = `👥 ${listeners} ouvintes online`;
         listenersEl.classList.add('updated');
@@ -248,4 +248,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   })(); // end main()
 }); // end DOMContentLoaded
+
 
