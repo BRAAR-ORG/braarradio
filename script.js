@@ -139,3 +139,4 @@ window.addEventListener('load', () => {
     playPrompt.classList.remove('hidden');
   }
 });
+
